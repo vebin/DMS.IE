@@ -1,0 +1,36 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio Version 16
+VisualStudioVersion = 16.0.31424.327
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "DMS.Excel", "DMS.Excel\DMS.Excel.csproj", "{7024BF20-8049-4478-9216-67D6212CFAAE}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Samples", "Samples", "{2B879163-E18F-48C8-B5E0-FF55FF198B0E}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "DMS.IE.Test", "..\samples\DMS.IE.Test\DMS.IE.Test.csproj", "{34186C4C-FD8D-45A5-876D-4A43E71567B6}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{7024BF20-8049-4478-9216-67D6212CFAAE}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{7024BF20-8049-4478-9216-67D6212CFAAE}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{7024BF20-8049-4478-9216-67D6212CFAAE}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{7024BF20-8049-4478-9216-67D6212CFAAE}.Release|Any CPU.Build.0 = Release|Any CPU
+		{34186C4C-FD8D-45A5-876D-4A43E71567B6}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{34186C4C-FD8D-45A5-876D-4A43E71567B6}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{34186C4C-FD8D-45A5-876D-4A43E71567B6}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{34186C4C-FD8D-45A5-876D-4A43E71567B6}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(NestedProjects) = preSolution
+		{34186C4C-FD8D-45A5-876D-4A43E71567B6} = {2B879163-E18F-48C8-B5E0-FF55FF198B0E}
+	EndGlobalSection
+	GlobalSection(ExtensibilityGlobals) = postSolution
+		SolutionGuid = {70EBEFD5-11D3-4F32-8F27-740A16C9BFC5}
+	EndGlobalSection
+EndGlobal
