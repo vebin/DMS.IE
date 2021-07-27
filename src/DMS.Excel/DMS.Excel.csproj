@@ -1,31 +1,20 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
-    <TargetFrameworks>netstandard2.0;netstandard2.1;netcoreapp3.1</TargetFrameworks>
+    <TargetFrameworks>net45;net46;net461;netstandard2.0;netstandard2.1</TargetFrameworks>
+    <Description>导入导出组件</Description>
+    <Authors>haillang,dylan</Authors>
+    <Company>haillang,dylan</Company>
+    <Version>1.1.0</Version>
+    <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
   </PropertyGroup>
 
   <ItemGroup>
+    <PackageReference Include="DMSN.Common" Version="3.2.1" />
     <PackageReference Include="DynamicExpresso.Core" Version="2.8.1" />
     <PackageReference Include="EPPlus" Version="5.7.1" />
   </ItemGroup>
 
-  <ItemGroup Condition="'$(TargetFramework)' == 'netstandard2.0'">
-    <PackageReference Include="DMS.Common">
-      <Version>2.1.112.6</Version>
-    </PackageReference>
-  </ItemGroup>
-
-  <ItemGroup Condition="'$(TargetFramework)' == 'netstandard2.1'">
-    <PackageReference Include="DMS.Common">
-      <Version>2.1.112.6</Version>
-    </PackageReference>
-  </ItemGroup>
-
-  <ItemGroup Condition="'$(TargetFramework)' == 'netcoreapp3.1'">
-    <PackageReference Include="DMS.Common">
-      <Version>2.1.112.6</Version>
-    </PackageReference>
-  </ItemGroup>
 
   <ItemGroup>
     <Compile Update="Resource.Designer.cs">
@@ -42,8 +31,8 @@
     </EmbeddedResource>
   </ItemGroup>
 
-  <ItemGroup>
-    <Folder Include="Common\" />
-  </ItemGroup>
+  <Target Name="PreBuild" BeforeTargets="PreBuildEvent">
+    <Exec Command="If $(ConfigurationName) == Release (&#xD;&#xA;del $(ProjectDir)$(OutDir)..\*.nupkg /s/q&#xD;&#xA;exit 0&#xD;&#xA;)ELSE (echo &quot;Not Debug mode, no file del from nupkg&quot;)" />
+  </Target>
 
 </Project>
