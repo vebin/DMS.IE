@@ -50,6 +50,7 @@ namespace DMS.Excel
                                 Author = exporterAttribute.Author,
                                 AutoFitAllColumn = exporterAttribute.AutoFitAllColumn,
                                 //AutoFitMaxRows = exporterAttribute.AutoFitMaxRows,
+                                AllFontSize = exporterAttribute.AllFontSize,
                                 FontSize = exporterAttribute.FontSize,
                                 HeaderFontSize = exporterAttribute.HeaderFontSize,
                                 MaxRowNumberOnASheet = exporterAttribute.MaxRowNumberOnASheet,
@@ -213,19 +214,40 @@ namespace DMS.Excel
             {
                 CurrentExcelWorksheet.Cells[1, 1, 1, ExporterHeaderInfoList.Count].Style.Font.Bold = ExcelExporterSettings.IsBold;
             }
+            //全局字体大小
+            bool HeaderFontSizeFlag = false;
+            if (ExcelExporterSettings.AllFontSize > 0)
+            {
+                CurrentExcelWorksheet.Cells.Style.Font.Size = ExcelExporterSettings.AllFontSize;
+            }
+            else
+            {
+                if (ExcelExporterSettings.HeaderFontSize > 0)
+                {
+                    HeaderFontSizeFlag = true;
+
+                }
+                if (ExcelExporterSettings.FontSize > 0)
+                {
+                    //正文字体大小
+
+                }
+            }
 
             foreach (var exporterHeader in ExporterHeaderInfoList)
             {
                 var colCell = CurrentExcelWorksheet.Cells[1, exporterHeader.Index];
                 colCell.Value = exporterHeader.DisplayName;
+                if (HeaderFontSizeFlag)
+                {
+                    //局部设置头部字体大小
+                    colCell.Style.Font.Size = ExcelExporterSettings.HeaderFontSize;
+                }
 
                 var exporterHeaderAttribute = exporterHeader.ExporterHeaderAttribute;
                 if (exporterHeaderAttribute != null)
                 {
                     //colCell.Style.Font.Bold = exporterHeaderAttribute.IsBold;//当前字段加粗
-                    var size = ExcelExporterSettings?.HeaderFontSize ?? exporterHeaderAttribute.FontSize;
-                    if (size.HasValue)
-                        colCell.Style.Font.Size = size.Value;
                 }
             }
         }

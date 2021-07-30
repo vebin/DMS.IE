@@ -5,7 +5,7 @@ using System;
 
 namespace DMS.IE.Test.Models.Export
 {
-    [ExcelExporter(Name = "测试数据", AutoCenter = true, AutoFitAllColumn = true, IsBold = true, MaxRowNumberOnASheet =20, TableStyle = TableStyles.None)]
+    [ExcelExporter(Name = "测试数据", AutoCenter = true, AutoFitAllColumn = true, IsBold = true,  TableStyle = TableStyles.None)]
     public class ExportTestDataWithAttrs
     {
         /// <summary>

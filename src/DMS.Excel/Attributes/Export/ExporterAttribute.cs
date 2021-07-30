@@ -20,11 +20,16 @@ namespace DMS.Excel.Attributes.Export
         /// 一个Sheet最大允许的行数，设置了之后将输出多个Sheet
         /// </summary>
         public int MaxRowNumberOnASheet { get; set; } = 0;
+        /// <summary>
+        /// 全局字体
+        /// </summary>
+        public int AllFontSize { get; set; }
+
 
         /// <summary>
         /// 头部字体大小
         /// </summary>
-        public float? HeaderFontSize { get; set; }
+        public float HeaderFontSize { get; set; }
         /// <summary>
         /// 头部列是否加粗
         /// </summary>
@@ -34,7 +39,7 @@ namespace DMS.Excel.Attributes.Export
         /// <summary>
         /// 正文字体大小
         /// </summary>
-        public float? FontSize { set; get; }
+        public float FontSize { set; get; }
 
         /// <summary>
         /// 作者
