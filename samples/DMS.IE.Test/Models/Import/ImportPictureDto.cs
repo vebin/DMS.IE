@@ -8,7 +8,7 @@ namespace DMS.IE.Test.Models.Import
     /// <summary>
     /// 
     /// </summary>
-    [Importer(HeaderRowIndex = 1)]
+    [Importer(DataRowStartIndex = 1)]
     public class ImportPictureDto
     {
         [ImporterHeader(Name = "加粗文本")]

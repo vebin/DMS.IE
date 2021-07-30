@@ -5,31 +5,31 @@ using System;
 
 namespace DMS.IE.Test.Models.Export
 {
-    [ExcelExporter(Name = "测试数据")]
+    [ExcelExporter(Name = "测试数据", AutoCenter = true, AutoFitAllColumn = true, IsBold = true, MaxRowNumberOnASheet =20, TableStyle = TableStyles.None)]
     public class ExportTestDataWithAttrs
     {
         /// <summary>
         /// Text：索引10
         /// </summary>
-        [ExporterHeader(DisplayName = "加粗文本", IsBold = true, ColumnIndex = 10, WrapText = true)]
+        [ExporterHeader(DisplayName = "加粗文本")]
         public string Text { get; set; }
         /// <summary>
         /// Text2：索引1
         /// </summary>
-        [ExporterHeader(DisplayName = "普通文本", ColumnIndex = 1, Hidden = true)]
+        [ExporterHeader(DisplayName = "普通文本")]
         public string Text2 { get; set; }
         /// <summary>
         /// Text3:索引2
         /// </summary>
-        [ExporterHeader(DisplayName = "文本3", ColumnIndex = 2)]
+        [ExporterHeader(DisplayName = "文本3")]
         public string Text3 { get; set; }
         /// <summary>
         /// Number:索引3
         /// </summary>
-        [ExporterHeader(DisplayName = "数值", Format = "#,##0", ColumnIndex = 3)]
+        [ExporterHeader(DisplayName = "数值", Format = "#,##0")]
         public int Number { get; set; }
 
-        [ExporterHeader(DisplayName = "名称", IsAutoFit = true)]
+        [ExporterHeader(DisplayName = "名称")]
         public string Name { get; set; }
 
         /// <summary>

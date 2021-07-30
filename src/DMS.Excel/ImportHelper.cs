@@ -1,5 +1,4 @@
 ﻿using DMS.Excel.Attributes.Import;
-using DMS.Excel.Extension;
 using DMS.Excel.Models;
 using DMS.Excel.Result;
 using DMSN.Common.Extensions;
@@ -16,38 +15,15 @@ namespace DMS.Excel
     public class ImportHelper<T> : IDisposable where T : class, new()
     {
         /// <summary>
-        /// </summary>
-        /// <param name="filePath"></param>
-        public ImportHelper(string filePath = null)
-        {
-            FilePath = filePath;
-        }
-
-        /// <summary>
-        /// </summary>
-        /// <param name="stream"></param>
-        public ImportHelper(Stream stream)
-        {
-            Stream = stream;
-        }
-        /// <summary>
         /// 
         /// </summary>
         private Dictionary<string, dynamic> dicMergePreValues = new Dictionary<string, dynamic>();
-        /// <summary>
-        /// 导入文件路径
-        /// </summary>
-        protected string FilePath { get; set; }
-        /// <summary>
-        /// 文件流
-        /// </summary>
-        protected Stream Stream { get; set; }
         /// <summary>
         /// 导入结果
         /// </summary>
         internal ImportResult<T> ImportResult { get; set; }
         /// <summary>
-        /// 列头定义
+        /// 列头集合
         /// </summary>
         protected List<ImporterHeaderInfo> ImporterHeaderInfos { get; set; }
         /// <summary>
@@ -55,7 +31,7 @@ namespace DMS.Excel
         /// </summary>
         private ExcelImporterAttribute _excelImporterAttribute;
         /// <summary>
-        /// 获取头部属性值
+        /// 获取自定义属性全局配置
         /// </summary>
         protected ExcelImporterAttribute ExcelImporterSettings
         {
@@ -73,7 +49,8 @@ namespace DMS.Excel
                     {
                         _excelImporterAttribute = new ExcelImporterAttribute()
                         {
-                            HeaderRowIndex = importerAttribute.HeaderRowIndex, 
+                            DataRowStartIndex = importerAttribute.DataRowStartIndex,
+                            DataRowEndIndex = importerAttribute.DataRowEndIndex,
                         };
                     }
                     else
@@ -89,108 +66,72 @@ namespace DMS.Excel
             set => _excelImporterAttribute = value;
         }
 
-        public Task<ImportResult<T>> Import(string filePath = null)
+
+        /// <summary>
+        /// 导入数据
+        /// </summary>
+        /// <param name="stream"></param>
+        /// <returns></returns>
+        public Task<ImportResult<T>> Import(Stream stream)
         {
-            ExcelPackage.LicenseContext = LicenseContext.NonCommercial;
-
-            if (!string.IsNullOrWhiteSpace(filePath)) FilePath = filePath;
             ImportResult = new ImportResult<T>();
-
-            if (Stream == null)
+            using (stream)
             {
-                CheckExcelFilePath(FilePath);
-                Stream = new FileStream(FilePath, FileMode.Open);
-            }
-
-            using (Stream)
-            {
-                using (var excelPackage = new ExcelPackage(Stream))
+                using (var excelPackage = new ExcelPackage(stream))
                 {
-                    //获取导入实体列定义
-                    ParseHeader();
-                    ParseTemplate(excelPackage);
-                    ImportResult.ImporterHeaderInfos = ImporterHeaderInfos;
-                    if (ImportResult.HasError) return Task.FromResult(ImportResult);
-
+                    ParseExcelTemplate(excelPackage);
                     ParseData(excelPackage);
-
                 }
             }
+
 
             return Task.FromResult(ImportResult);
         }
 
         /// <summary>
-        /// 解析实体头部
+        /// 解析Excel与DTO模型列的匹配
         /// </summary>
         /// <returns></returns>
-        protected virtual bool ParseHeader()
+        protected bool ParseExcelTemplate(ExcelPackage excelPackage)
         {
-            ImporterHeaderInfos = new List<ImporterHeaderInfo>();
-            ImportResult.TemplateErrors = new List<TemplateErrorInfo>();
-            var objProperties = typeof(T).GetProperties();
-            if (objProperties.Length == 0)
-            {
-                ImportResult.TemplateErrors.Add(new TemplateErrorInfo
-                {
-                    Message = $"解析实体为空对象"
-                });
-                return false;
-            }
-            foreach (var propertyInfo in objProperties)
-            {
-                //如果不设置，则自动使用默认定义
-                var importerHeaderAttribute = (propertyInfo.GetCustomAttributes(typeof(ImporterHeaderAttribute), true) as ImporterHeaderAttribute[])?.FirstOrDefault() ?? new ImporterHeaderAttribute
-                {
-                    //如果没有设置ImporterHeader，在检查是否有设置Display，都没有则为默认名称
-                    Name = propertyInfo.GetDisplayName() ?? propertyInfo.Name,
-                };
-
-                var colHeader = new ImporterHeaderInfo
-                {
-                    IsRequired = propertyInfo.IsRequired(),
-                    PropertyName = propertyInfo.Name,
-                    Header = importerHeaderAttribute,
-                    ImportImageFieldAttribute = propertyInfo.GetAttribute<ImportImageFieldAttribute>(true),
-                    PropertyInfo = propertyInfo
-                };
-                ImporterHeaderInfos.Add(colHeader);
-            }
-            return true;
-        }
-        /// <summary>
-        /// 解析模板并设置列索引
-        /// </summary>
-        /// <returns></returns>
-        protected virtual void ParseTemplate(ExcelPackage excelPackage)
-        {
+            //根据名称获取Sheet，如果不存在则取第一个
             try
             {
-                //根据名称获取Sheet，如果不存在则取第一个
                 var worksheet = GetWorksheet(excelPackage, ExcelImporterSettings.SheetIndex);
                 var excelHeaders = new Dictionary<string, int>();
                 var endColumnCount = worksheet.Dimension.End.Column;
                 for (var columnIndex = 1; columnIndex <= endColumnCount; columnIndex++)
                 {
-                    var header = worksheet.Cells[ExcelImporterSettings.HeaderRowIndex, columnIndex].Text;
+                    //起始可能不为1，后期根据模板优化
+                    var header = worksheet.Cells[ExcelImporterSettings.DataRowStartIndex, columnIndex].Text;
                     excelHeaders.Add(header, columnIndex);
                 }
-
-                foreach (var item in ImporterHeaderInfos)
+                ImporterHeaderInfos = new List<ImporterHeaderInfo>();
+                var objProperties = typeof(T).GetProperties();
+                foreach (var propertyInfo in objProperties)
                 {
-                    //设置列索引
-                    if (item.Header.ColumnIndex == 0)
-                        item.Header.ColumnIndex = excelHeaders[item.Header.Name];
+                    var importerHeaderAttribute = (propertyInfo.GetCustomAttributes(typeof(ImporterHeaderAttribute), true) as ImporterHeaderAttribute[])?.FirstOrDefault() ?? new ImporterHeaderAttribute
+                    {
+                        //Name = propertyInfo.GetDisplayName() ?? propertyInfo.Name,
+                        Name = propertyInfo.Name,//如果不设置，则自动使用默认属性名称
+                    };
+                    if (importerHeaderAttribute.ColumnIndex == 0)
+                        importerHeaderAttribute.ColumnIndex = excelHeaders[importerHeaderAttribute.Name];
+
+                    var colHeader = new ImporterHeaderInfo
+                    {
+                        PropertyName = propertyInfo.Name,
+                        HeaderAttribute = importerHeaderAttribute,
+                        PropertyInfo = propertyInfo,
+                    };
+                    ImporterHeaderInfos.Add(colHeader);
                 }
             }
             catch (Exception ex)
             {
-                ImportResult.TemplateErrors.Add(new TemplateErrorInfo
-                {
-                    Message = $"模板出现未知错误：{ex}"
-                });
                 throw new Exception($"模板出现未知错误：{ex.Message}", ex);
             }
+            return true;
         }
         /// <summary>
         /// 
@@ -206,7 +147,7 @@ namespace DMS.Excel
             ImportResult.Data = new List<T>();
             var propertyInfos = new List<PropertyInfo>(typeof(T).GetProperties());
 
-            for (var rowIndex = ExcelImporterSettings.HeaderRowIndex + 1;
+            for (var rowIndex = ExcelImporterSettings.DataRowStartIndex + 1;
                 rowIndex <= worksheet.Dimension.End.Row; rowIndex++)
             {
                 //跳过空行
@@ -227,7 +168,7 @@ namespace DMS.Excel
                         {
                             var col = ImporterHeaderInfos.First(a => a.PropertyName == propertyInfo.Name);
 
-                            var cell = worksheet.Cells[rowIndex, col.Header.ColumnIndex];
+                            var cell = worksheet.Cells[rowIndex, col.HeaderAttribute.ColumnIndex];
 
                             try
                             {
@@ -239,7 +180,7 @@ namespace DMS.Excel
                                 }
 
                                 var cellValue = cell.Value?.ToString();
-                                switch (propertyInfo.PropertyType.GetCSharpTypeName())
+                                switch (propertyInfo.PropertyType.GetTypeName())
                                 {
                                     #region 类型
                                     case "Boolean":
@@ -251,7 +192,7 @@ namespace DMS.Excel
                                             SetValue(cell, dataItem, propertyInfo, null);
                                         else
                                         {
-                                            AddRowDataError(rowIndex, col, $"值 {cellValue} 不合法！");
+                                            //AddRowDataError(rowIndex, col, $"值 {cellValue} 不合法！");
                                         }
                                         break;
 
@@ -263,7 +204,7 @@ namespace DMS.Excel
                                         {
                                             if (!long.TryParse(cellValue, out var number))
                                             {
-                                                AddRowDataError(rowIndex, col, $"值 {cellValue} 无效，请填写正确的整数数值！");
+                                                //AddRowDataError(rowIndex, col, $"值 {cellValue} 无效，请填写正确的整数数值！");
                                                 break;
                                             }
                                             SetValue(cell, dataItem, propertyInfo, number);
@@ -280,7 +221,7 @@ namespace DMS.Excel
 
                                             if (!long.TryParse(cellValue, out var number))
                                             {
-                                                AddRowDataError(rowIndex, col, $"值 {cellValue} 无效，请填写正确的整数数值！");
+                                                //AddRowDataError(rowIndex, col, $"值 {cellValue} 无效，请填写正确的整数数值！");
                                                 break;
                                             }
 
@@ -292,7 +233,7 @@ namespace DMS.Excel
                                         {
                                             if (!int.TryParse(cellValue, out var number))
                                             {
-                                                AddRowDataError(rowIndex, col, $"值 {cellValue} 无效，请填写正确的整数数值！");
+                                                //AddRowDataError(rowIndex, col, $"值 {cellValue} 无效，请填写正确的整数数值！");
                                                 break;
                                             }
 
@@ -310,7 +251,7 @@ namespace DMS.Excel
 
                                             if (!int.TryParse(cellValue, out var number))
                                             {
-                                                AddRowDataError(rowIndex, col, $"值 {cellValue} 无效，请填写正确的整数数值！");
+                                                //AddRowDataError(rowIndex, col, $"值 {cellValue} 无效，请填写正确的整数数值！");
                                                 break;
                                             }
 
@@ -322,7 +263,7 @@ namespace DMS.Excel
                                         {
                                             if (!short.TryParse(cellValue, out var number))
                                             {
-                                                AddRowDataError(rowIndex, col, $"值 {cellValue} 无效，请填写正确的整数数值！");
+                                                //AddRowDataError(rowIndex, col, $"值 {cellValue} 无效，请填写正确的整数数值！");
                                                 break;
                                             }
 
@@ -340,7 +281,7 @@ namespace DMS.Excel
 
                                             if (!short.TryParse(cellValue, out var number))
                                             {
-                                                AddRowDataError(rowIndex, col, $"值 {cellValue} 无效，请填写正确的整数数值！");
+                                                //AddRowDataError(rowIndex, col, $"值 {cellValue} 无效，请填写正确的整数数值！");
                                                 break;
                                             }
 
@@ -352,7 +293,7 @@ namespace DMS.Excel
                                         {
                                             if (!decimal.TryParse(cellValue, out var number))
                                             {
-                                                AddRowDataError(rowIndex, col, $"值 {cellValue} 无效，请填写正确的小数！");
+                                                //AddRowDataError(rowIndex, col, $"值 {cellValue} 无效，请填写正确的小数！");
                                                 break;
                                             }
 
@@ -370,7 +311,7 @@ namespace DMS.Excel
 
                                             if (!decimal.TryParse(cellValue, out var number))
                                             {
-                                                AddRowDataError(rowIndex, col, $"值 {cellValue} 无效，请填写正确的小数！");
+                                                //AddRowDataError(rowIndex, col, $"值 {cellValue} 无效，请填写正确的小数！");
                                                 break;
                                             }
 
@@ -382,7 +323,7 @@ namespace DMS.Excel
                                         {
                                             if (!double.TryParse(cellValue, out var number))
                                             {
-                                                AddRowDataError(rowIndex, col, $"值 {cellValue} 无效，请填写正确的小数！");
+                                                //AddRowDataError(rowIndex, col, $"值 {cellValue} 无效，请填写正确的小数！");
                                                 break;
                                             }
 
@@ -400,7 +341,7 @@ namespace DMS.Excel
 
                                             if (!double.TryParse(cellValue, out var number))
                                             {
-                                                AddRowDataError(rowIndex, col, $"值 {cellValue} 无效，请填写正确的小数！");
+                                                //AddRowDataError(rowIndex, col, $"值 {cellValue} 无效，请填写正确的小数！");
                                                 break;
                                             }
 
@@ -412,7 +353,7 @@ namespace DMS.Excel
                                         {
                                             if (!float.TryParse(cellValue, out var number))
                                             {
-                                                AddRowDataError(rowIndex, col, $"值 {cellValue} 无效，请填写正确的小数！");
+                                                //AddRowDataError(rowIndex, col, $"值 {cellValue} 无效，请填写正确的小数！");
                                                 break;
                                             }
 
@@ -430,7 +371,7 @@ namespace DMS.Excel
 
                                             if (!float.TryParse(cellValue, out var number))
                                             {
-                                                AddRowDataError(rowIndex, col, $"值 {cellValue} 无效，请填写正确的小数！");
+                                                //AddRowDataError(rowIndex, col, $"值 {cellValue} 无效，请填写正确的小数！");
                                                 break;
                                             }
 
@@ -442,7 +383,7 @@ namespace DMS.Excel
                                         {
                                             if (cell.Value == null || cell.Text.IsNullOrEmpty())
                                             {
-                                                AddRowDataError(rowIndex, col, $"值 {cell.Value} 无效，请填写正确的日期时间格式！");
+                                                //AddRowDataError(rowIndex, col, $"值 {cell.Value} 无效，请填写正确的日期时间格式！");
                                                 break;
                                             }
                                             try
@@ -452,7 +393,7 @@ namespace DMS.Excel
                                             }
                                             catch (Exception)
                                             {
-                                                AddRowDataError(rowIndex, col, $"值 {cell.Value} 无效，请填写正确的日期时间格式！");
+                                                //AddRowDataError(rowIndex, col, $"值 {cell.Value} 无效，请填写正确的日期时间格式！");
                                                 break;
                                             }
                                         }
@@ -462,7 +403,7 @@ namespace DMS.Excel
                                         {
                                             if (!DateTimeOffset.TryParse(cell.Text, out var date))
                                             {
-                                                AddRowDataError(rowIndex, col, $"值 {cell.Text} 无效，请填写正确的日期时间格式！");
+                                                //AddRowDataError(rowIndex, col, $"值 {cell.Text} 无效，请填写正确的日期时间格式！");
                                                 break;
                                             }
 
@@ -480,7 +421,7 @@ namespace DMS.Excel
 
                                             if (!DateTime.TryParse(cell.Text, out var date))
                                             {
-                                                AddRowDataError(rowIndex, col, $"值 {cell.Text} 无效，请填写正确的日期时间格式！");
+                                                //AddRowDataError(rowIndex, col, $"值 {cell.Text} 无效，请填写正确的日期时间格式！");
                                                 break;
                                             }
 
@@ -498,7 +439,7 @@ namespace DMS.Excel
 
                                             if (!DateTimeOffset.TryParse(cell.Text, out var date))
                                             {
-                                                AddRowDataError(rowIndex, col, $"值 {cell.Text} 无效，请填写正确的日期时间格式！");
+                                                //AddRowDataError(rowIndex, col, $"值 {cell.Text} 无效，请填写正确的日期时间格式！");
                                                 break;
                                             }
 
@@ -510,7 +451,7 @@ namespace DMS.Excel
                                         {
                                             if (!Guid.TryParse(cellValue, out var guid))
                                             {
-                                                AddRowDataError(rowIndex, col, $"值 {cellValue} 无效，请填写正确的Guid格式！");
+                                                //AddRowDataError(rowIndex, col, $"值 {cellValue} 无效，请填写正确的Guid格式！");
                                                 break;
                                             }
 
@@ -528,7 +469,7 @@ namespace DMS.Excel
 
                                             if (!Guid.TryParse(cellValue, out var guid))
                                             {
-                                                AddRowDataError(rowIndex, col, $"值 {cellValue} 无效，请填写正确的Guid格式！");
+                                                //AddRowDataError(rowIndex, col, $"值 {cellValue} 无效，请填写正确的Guid格式！");
                                                 break;
                                             }
 
@@ -544,7 +485,7 @@ namespace DMS.Excel
                             }
                             catch (Exception ex)
                             {
-                                AddRowDataError(rowIndex, col, ex.Message);
+                                //AddRowDataError(rowIndex, col, ex.Message);
                             }
                         }
 
@@ -574,27 +515,6 @@ namespace DMS.Excel
         }
 
 
-        /// <summary>
-        /// 验证路径是否为空
-        /// 验证后缀是否是Excel文件
-        /// 验证文件路径是否存在
-        /// </summary>
-        /// <param name="fileName"></param>
-        public static void CheckExcelFilePath(string filePath)
-        {
-            if (string.IsNullOrWhiteSpace(filePath))
-            {
-                throw new ArgumentNullException(Resource.FileNameShouldNotBeEmpty, nameof(filePath));
-            }
-            if (!Path.GetExtension(filePath).Equals(".xlsx", StringComparison.OrdinalIgnoreCase))
-            {
-                throw new ArgumentException(Resource.ExportingIsOnlySupportedXLSX, nameof(filePath));
-            }
-            if (!File.Exists(filePath))
-            {
-                throw new FileNotFoundException("导入文件不存在!");
-            }
-        }
 
         /// <summary>
         /// 
@@ -626,28 +546,6 @@ namespace DMS.Excel
             return workbook.Worksheets[sheetIndex] ?? workbook.Worksheets[0];
         }
 
-        /// <summary>
-        ///     添加数据行错误
-        /// </summary>
-        /// <param name="rowIndex"></param>
-        /// <param name="importerHeaderInfo"></param>
-        /// <param name="errorMessage"></param>
-        protected virtual void AddRowDataError(int rowIndex, ImporterHeaderInfo importerHeaderInfo, string errorMessage = "数据格式无效！")
-        {
-
-            //if (ImportResult.RowErrors == null) ImportResult.RowErrors = new List<DataRowErrorInfo>();
-
-            //var dataRowError = ImportResult.RowErrors.FirstOrDefault(p => p.RowIndex == rowIndex);
-            //if (dataRowError == null)
-            //{
-            //    dataRowError = new DataRowErrorInfo
-            //    {
-            //        RowIndex = rowIndex,
-            //    };
-            //    ImportResult.RowErrors.Add(dataRowError);
-            //}
-            //dataRowError.FieldErrors.Add(importerHeaderInfo.Header.Name, errorMessage);
-        }
         public void Dispose()
         {
         }

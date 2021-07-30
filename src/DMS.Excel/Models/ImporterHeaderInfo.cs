@@ -9,11 +9,6 @@ namespace DMS.Excel.Models
     public class ImporterHeaderInfo
     {
         /// <summary>
-        /// 是否必填
-        /// </summary>
-        public bool IsRequired { get; set; }
-
-        /// <summary>
         /// 列名称
         /// </summary>
         public string PropertyName { get; set; }
@@ -21,11 +16,7 @@ namespace DMS.Excel.Models
         /// <summary>
         /// 列属性
         /// </summary>
-        public ImporterHeaderAttribute Header { get; set; }
-        /// <summary>
-        /// 图属性
-        /// </summary>
-        public ImportImageFieldAttribute ImportImageFieldAttribute { get; set; }
+        public ImporterHeaderAttribute HeaderAttribute { get; set; }
 
         /// <summary>
         /// 属性信息

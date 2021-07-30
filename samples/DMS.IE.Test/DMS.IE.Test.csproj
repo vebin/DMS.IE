@@ -7,6 +7,10 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <Compile Remove="Models\Export\ExportTestMultilineHeader.cs" />
+  </ItemGroup>
+
+  <ItemGroup>
     <PackageReference Include="GenFu" Version="1.6.0" />
     <PackageReference Include="Microsoft.NET.Test.Sdk" Version="16.9.4" />
     <PackageReference Include="NUnit" Version="3.13.1" />

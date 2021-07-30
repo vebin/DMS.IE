@@ -5,12 +5,16 @@
     <Description>导入导出组件</Description>
     <Authors>haillang,dylan</Authors>
     <Company>haillang,dylan</Company>
-    <Version>1.1.0</Version>
+    <Version>2.2.0</Version>
     <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="DMSN.Common" Version="3.2.1" />
+    <Compile Remove="ExportHelperV2.cs" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="DMSN.Common" Version="3.2.5" />
     <PackageReference Include="DynamicExpresso.Core" Version="2.8.1" />
     <PackageReference Include="EPPlus" Version="5.7.1" />
   </ItemGroup>

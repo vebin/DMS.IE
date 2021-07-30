@@ -9,13 +9,9 @@ namespace DMS.Excel.Attributes.Import
     public class ImporterAttribute : Attribute
     {
         /// <summary>
-        /// 表头位置
-        /// </summary>
-        public int HeaderRowIndex { get; set; } = 1;
-        /// <summary>
         /// 数据起始行编号
         /// </summary>
-        public int DataRowStartIndex { get; set; }
+        public int DataRowStartIndex { get; set; } = 1;
         /// <summary>
         /// 数据结束行编号
         /// </summary>

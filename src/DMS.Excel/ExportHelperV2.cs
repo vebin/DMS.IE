@@ -1,46 +1,30 @@
 ﻿using DMS.Excel.Attributes.Export;
-using DMS.Excel.Extension;
 using DMS.Excel.Models;
 using DMSN.Common.Extensions;
 using OfficeOpenXml;
 using OfficeOpenXml.Style;
 using OfficeOpenXml.Table;
-using System;
 using System.Collections.Generic;
 using System.Data;
-using System.Dynamic;
 using System.Globalization;
 using System.Linq;
 using System.Reflection;
 
 namespace DMS.Excel
 {
-    /// <summary>
-    /// 导出辅助类
-    /// </summary>
-    /// <typeparam name="T"></typeparam>
     public class ExportHelperV2<T> where T : class, new()
     {
-        private ExcelPackage _excelPackage;
-        private ExcelWorksheet _excelWorksheet;
+        private List<ExporterHeaderInfo> _exporterHeaderInfoList;
         private ExcelExporterAttribute _excelExporterAttribute;
-        private List<ExporterHeaderInfo> _exporterHeaderList;
-        /// <summary>
-        /// 当前工作
-        /// </summary>
-        protected List<ExcelWorksheet> ExcelWorksheets { get; set; } = new List<ExcelWorksheet>();
+
+        private ExcelWorksheet _excelWorksheet;
+        private ExcelPackage _excelPackage;
         /// <summary>
         /// 当前Sheet索引
         /// </summary>
         protected int SheetIndex = 0;
-        public ExportHelperV2()
-        {
-
-        }
-
-
         /// <summary>
-        /// 导出类设置
+        /// 导出类全局配置
         /// </summary>
         public ExcelExporterAttribute ExcelExporterSettings
         {
@@ -65,13 +49,14 @@ namespace DMS.Excel
                             {
                                 Author = exporterAttribute.Author,
                                 AutoFitAllColumn = exporterAttribute.AutoFitAllColumn,
-                                AutoFitMaxRows = exporterAttribute.AutoFitMaxRows,
+                                //AutoFitMaxRows = exporterAttribute.AutoFitMaxRows,
                                 FontSize = exporterAttribute.FontSize,
                                 HeaderFontSize = exporterAttribute.HeaderFontSize,
-                                MaxRowNumberOnASheet = exporterAttribute.MaxRowNumberOnASheet,
+                                //MaxRowNumberOnASheet = exporterAttribute.MaxRowNumberOnASheet,
                                 Name = exporterAttribute.Name,
                                 TableStyle = _excelExporterAttribute?.TableStyle ?? TableStyles.None,
                                 AutoCenter = _excelExporterAttribute != null && _excelExporterAttribute.AutoCenter,
+                                IsBold = exporterAttribute.IsBold,
                             };
                         }
                         else
@@ -92,12 +77,60 @@ namespace DMS.Excel
             {
                 var type = typeof(T);
                 var objProperties = type.GetProperties()
-                    .OrderBy(p => p.GetAttribute<ExporterHeaderAttribute>()?.ColumnIndex ?? 10000).ToList();
+                    //.OrderBy(p => p.GetAttribute<ExporterHeaderAttribute>()?.ColumnIndex ?? 10000)
+                    .ToList();
                 return objProperties;
             }
         }
+
         /// <summary>
-        /// 当前Excel包
+        /// 表头列表
+        /// </summary>
+        protected List<ExporterHeaderInfo> ExporterHeaderInfoList
+        {
+            get
+            {
+                if (_exporterHeaderInfoList == null || _exporterHeaderInfoList.Count <= 0)
+                {
+                    _exporterHeaderInfoList = new List<ExporterHeaderInfo>();
+                    var objProperties = SortedProperties;
+                    if (objProperties.Count == 0)
+                        return _exporterHeaderInfoList;
+
+                    for (var i = 0; i < objProperties.Count; i++)
+                    {
+                        var item = new ExporterHeaderInfo
+                        {
+                            Index = i + 1,
+                            PropertyName = objProperties[i].Name,
+                            ExporterHeaderAttribute = (objProperties[i].GetCustomAttributes(typeof(ExporterHeaderAttribute), true) as ExporterHeaderAttribute[])?.FirstOrDefault(),
+                            CsTypeName = objProperties[i].PropertyType.GetTypeName(),
+                            ExportImageFieldAttribute = objProperties[i].GetAttribute<ExportImageFieldAttribute>(true),
+
+                        };
+
+                        //设置列显示名
+                        item.DisplayName = item.ExporterHeaderAttribute == null ||
+                                           item.ExporterHeaderAttribute.DisplayName.IsNullOrEmpty()
+                            ? item.PropertyName
+                            : item.ExporterHeaderAttribute.DisplayName;
+
+                        ////设置Format
+                        //if (item.ExporterHeaderAttribute != null && !item.ExporterHeaderAttribute.Format.IsNullOrEmpty())
+                        //{
+                        //    item.ExporterHeaderAttribute.Format = item.ExporterHeaderAttribute.Format;
+                        //}
+
+                        _exporterHeaderInfoList.Add(item);
+                    }
+                }
+
+                return _exporterHeaderInfoList;
+            }
+            set => _exporterHeaderInfoList = value;
+        }
+        /// <summary>
+        /// 
         /// </summary>
         public ExcelPackage CurrentExcelPackage
         {
@@ -105,7 +138,6 @@ namespace DMS.Excel
             {
                 if (_excelPackage == null)
                 {
-                    ExcelPackage.LicenseContext = LicenseContext.NonCommercial;
                     _excelPackage = new ExcelPackage();
 
                     if (ExcelExporterSettings?.Author != null)
@@ -116,90 +148,36 @@ namespace DMS.Excel
             }
             set => _excelPackage = value;
         }
-        /// <summary>
-        /// 当前工作Sheet
-        /// </summary>
         protected ExcelWorksheet CurrentExcelWorksheet
         {
             get
             {
                 if (_excelWorksheet == null)
                 {
-                    var name = ExcelExporterSettings?.Name ?? "导出结果";
-                    if (SheetIndex != 0)
-                    {
-                        name += "-" + SheetIndex;
-                    }
-
-                    _excelWorksheet = CurrentExcelPackage.Workbook.Worksheets.Add(name);
-                    _excelWorksheet.OutLineApplyStyle = true;
-                    ExcelWorksheets.Add(_excelWorksheet);
+                    AddExcelWorksheet();
                 }
+
                 return _excelWorksheet;
             }
             set => _excelWorksheet = value;
         }
-        /// <summary>
-        /// 表头列表
-        /// </summary>
-        protected List<ExporterHeaderInfo> ExporterHeaderList
+
+        public ExcelWorksheet AddExcelWorksheet(string name = null)
         {
-            get
+            if (string.IsNullOrWhiteSpace(name))
             {
-                if (_exporterHeaderList == null)
-                {
-                    GetExporterHeaderInfoList();
-                }
-
-                return _exporterHeaderList;
+                name = ExcelExporterSettings?.Name ?? "导出结果";
             }
-            set => _exporterHeaderList = value;
-        }
-        /// <summary>
-        /// 获取头部定义
-        /// </summary>
-        /// <returns></returns>
-        protected virtual void GetExporterHeaderInfoList(DataTable dt = null, ICollection<T> dataItems = null)
-        {
-            _exporterHeaderList = new List<ExporterHeaderInfo>();
 
-            //var type = _type ?? typeof(T);
-            //#179 GetProperties方法不按特定顺序（如字母顺序或声明顺序）返回属性，因此此处支持按ColumnIndex排序返回
-            //var objProperties = type.GetProperties().OrderBy(p => p.GetAttribute<ExporterHeaderAttribute>()?.ColumnIndex ?? 10000).ToArray();
-            var objProperties = SortedProperties;
-            if (objProperties.Count == 0)
-                return;
-            for (var i = 0; i < objProperties.Count; i++)
+            if (SheetIndex != 0)
             {
-
-                var item = new ExporterHeaderInfo
-                {
-                    Index = i + 1,
-                    PropertyName = objProperties[i].Name,
-                    ExporterHeaderAttribute =
-                        (objProperties[i].GetCustomAttributes(typeof(ExporterHeaderAttribute), true) as
-                            ExporterHeaderAttribute[])?.FirstOrDefault() ??
-                        new ExporterHeaderAttribute(objProperties[i].GetDisplayName() ?? objProperties[i].Name),
-                    CsTypeName = objProperties[i].PropertyType.GetCSharpTypeName(),
-                    ExportImageFieldAttribute = objProperties[i].GetAttribute<ExportImageFieldAttribute>(true),
-
-                };
-
-                //设置列显示名
-                item.DisplayName = item.ExporterHeaderAttribute == null ||
-                                   item.ExporterHeaderAttribute.DisplayName == null ||
-                                   item.ExporterHeaderAttribute.DisplayName.IsNullOrEmpty()
-                    ? item.PropertyName
-                    : item.ExporterHeaderAttribute.DisplayName;
-                //设置Format
-                item.ExporterHeaderAttribute.Format = item.ExporterHeaderAttribute.Format.IsNullOrEmpty()
-                    ? objProperties[i].GetDisplayFormat()
-                    : item.ExporterHeaderAttribute.Format;
-
-                _exporterHeaderList.Add(item);
+                name += "-" + SheetIndex;
             }
-        }
 
+            _excelWorksheet = CurrentExcelPackage.Workbook.Worksheets.Add(name);
+            _excelWorksheet.OutLineApplyStyle = true;
+            return _excelWorksheet;
+        }
 
         /// <summary>
         /// 导出Excel
@@ -207,113 +185,44 @@ namespace DMS.Excel
         /// <returns>文件</returns>
         public virtual ExcelPackage Export(ICollection<T> dataItems)
         {
-            var data = ParseData(dataItems);
-
-            AddDataItems(data);
-
-
-            //// 为了传入dataItems，在这里提前调用一下
-            //if (_exporterHeaderList == null) GetExporterHeaderInfoList(null, dataItems);
-
-
-            //DisableAutoFitWhenDataRowsIsLarge(dataItems.Count);
-            return AddHeaderAndStyles();
-        }
-        /// <summary>
-        /// 解析数据
-        /// </summary>
-        /// <param name="dataItems"></param>
-        /// <returns></returns>
-        protected virtual IEnumerable<ExpandoObject> ParseData(ICollection<T> dataItems)
-        {
-            var type = typeof(T);
-            var properties = SortedProperties;
-            List<ExpandoObject> list = new List<ExpandoObject>();
-            foreach (var dataItem in dataItems)
-            {
-                dynamic obj = new ExpandoObject();
-                foreach (var propertyInfo in properties)
-                {
-                    if (propertyInfo.PropertyType.GetCSharpTypeName() == "Boolean")
-                    {
-                        var col = ExporterHeaderList.First(a => a.PropertyName == propertyInfo.Name);
-                        var val = type.GetProperty(propertyInfo.Name)?.GetValue(dataItem).ToString();
-                        bool value = Convert.ToBoolean(val);
-
-                        ((IDictionary<string, object>)obj)[propertyInfo.Name] = value;
-                    }
-                    else if (propertyInfo.PropertyType.GetCSharpTypeName() == "Nullable<Boolean>")
-                    {
-                        var col = ExporterHeaderList.First(a => a.PropertyName == propertyInfo.Name);
-                        var value = Convert.ToBoolean(type.GetProperty(propertyInfo.Name)?.GetValue(dataItem));
-
-                        ((IDictionary<string, object>)obj)[propertyInfo.Name] = value;
-                    }
-                    else
-                    {
-                        ((IDictionary<string, object>)obj)[propertyInfo.Name] = type.GetProperty(propertyInfo.Name)?.GetValue(dataItem)?.ToString();
-                    }
-                }
-
-                //yield return obj;
-                list.Add(obj);
-            }
-            //list.Add(obj);
-            return list;
-        }
-        /// <summary>
-        /// 添加导出数据
-        /// </summary>
-        /// <param name="dataItems"></param>
-        /// <param name="excelRange"></param>
-        protected void AddDataItems(IEnumerable<ExpandoObject> dataItems)
-        {
-            var excelRange = CurrentExcelWorksheet.Cells["A1"];
-            if (dataItems == null || !dataItems.Any())
-            {
-                return;
-            }
-
-            excelRange.LoadFromDictionaries(dataItems, true, ExcelExporterSettings.TableStyle);
-        }
-
-        /// <summary>
-        /// 添加表头、样式以及忽略列、格式处理
-        /// </summary>
-        /// <returns></returns>
-        private ExcelPackage AddHeaderAndStyles()
-        {
+            AddDataItems(dataItems);
             AddHeader();
-
-            if (ExcelExporterSettings.AutoFitAllColumn)
-            {
-                CurrentExcelWorksheet.Cells[CurrentExcelWorksheet.Dimension.Address].AutoFitColumns();
-            }
-
-            AddStyle();
-            //DeleteIgnoreColumns();
-            //以便支持导出多Sheet
+            AddColumnStyle();
             SheetIndex++;
-            SetSkipRows();
             return CurrentExcelPackage;
         }
+
+        protected void AddDataItems(ICollection<T> dataItems)
+        {
+            ExcelRangeBase excelRange = CurrentExcelWorksheet.Cells["A1"];
+            excelRange.LoadFromCollection(dataItems, true, ExcelExporterSettings.TableStyle);
+        }
+
         /// <summary>
-        /// 创建表头
+        /// 设置头部样式
         /// </summary>
         protected void AddHeader()
         {
-            foreach (var exporterHeaderDto in ExporterHeaderList)
+            //全局剧中
+            if (ExcelExporterSettings.AutoCenter)
             {
-                var exporterHeaderAttribute = exporterHeaderDto.ExporterHeaderAttribute;
+                CurrentExcelWorksheet.Cells[1, 1, CurrentExcelWorksheet.Dimension?.End.Row ?? 10, ExporterHeaderInfoList.Count].Style.HorizontalAlignment = ExcelHorizontalAlignment.Center;
+            }
+            //头部全部加粗
+            if (ExcelExporterSettings.IsBold)
+            {
+                CurrentExcelWorksheet.Cells[1, 1, 1, ExporterHeaderInfoList.Count].Style.Font.Bold = ExcelExporterSettings.IsBold;
+            }
+
+            foreach (var exporterHeader in ExporterHeaderInfoList)
+            {
+                var colCell = CurrentExcelWorksheet.Cells[1, exporterHeader.Index];
+                colCell.Value = exporterHeader.DisplayName;
+
+                var exporterHeaderAttribute = exporterHeader.ExporterHeaderAttribute;
                 if (exporterHeaderAttribute != null)
                 {
-                    var colCell = CurrentExcelWorksheet.Cells[1, exporterHeaderDto.Index];
-                    colCell.Style.Font.Bold = exporterHeaderAttribute.IsBold;
-
-
-                    colCell.Value = exporterHeaderDto.DisplayName;
-
-
+                    //colCell.Style.Font.Bold = exporterHeaderAttribute.IsBold;//当前字段加粗
                     var size = ExcelExporterSettings?.HeaderFontSize ?? exporterHeaderAttribute.FontSize;
                     if (size.HasValue)
                         colCell.Style.Font.Size = size.Value;
@@ -321,16 +230,16 @@ namespace DMS.Excel
             }
         }
         /// <summary>
-        /// 添加样式
+        /// 添加列的样式
         /// </summary>
-        protected virtual void AddStyle()
+        protected void AddColumnStyle()
         {
-            foreach (var exporterHeader in ExporterHeaderList)
+            foreach (var exporterHeader in ExporterHeaderInfoList)
             {
-                var col = CurrentExcelWorksheet.Column(exporterHeader.Index);
+                var colColumn = CurrentExcelWorksheet.Column(exporterHeader.Index);
                 if (exporterHeader.ExporterHeaderAttribute != null && !string.IsNullOrWhiteSpace(exporterHeader.ExporterHeaderAttribute.Format))
                 {
-                    col.Style.Numberformat.Format = exporterHeader.ExporterHeaderAttribute.Format;
+                    colColumn.Style.Numberformat.Format = exporterHeader.ExporterHeaderAttribute.Format;
 
                 }
                 else
@@ -344,51 +253,36 @@ namespace DMS.Excel
                         case "Nullable<DateTime>":
                         case "Nullable<DateTimeOffset>":
                             //设置本地化时间格式
-                            col.Style.Numberformat.Format = CultureInfo.CurrentUICulture.DateTimeFormat.FullDateTimePattern;
+                            colColumn.Style.Numberformat.Format = CultureInfo.CurrentUICulture.DateTimeFormat.FullDateTimePattern;
                             break;
                         default:
                             break;
                     }
                 }
-
-                if (!ExcelExporterSettings.AutoFitAllColumn && exporterHeader.ExporterHeaderAttribute != null && exporterHeader.ExporterHeaderAttribute.IsAutoFit)
-                    col.AutoFit();
-
-                if (exporterHeader.ExportImageFieldAttribute != null)
+                if (ExcelExporterSettings.AutoFitAllColumn)
                 {
-                    col.Width = exporterHeader.ExportImageFieldAttribute.Width;
+                    colColumn.AutoFit();
                 }
 
-                if (exporterHeader.ExporterHeaderAttribute != null)
+                var exporterHeaderAttribute = exporterHeader.ExporterHeaderAttribute;
+                if (exporterHeaderAttribute != null)
                 {
                     //设置单元格宽度
                     var width = exporterHeader.ExporterHeaderAttribute.Width;
                     if (width > 0)
                     {
-                        col.Width = width;
+                        colColumn.Width = width;
                     }
 
-                    if (exporterHeader.ExporterHeaderAttribute.AutoCenterColumn)
-                    {
-                        col.Style.HorizontalAlignment = ExcelHorizontalAlignment.Center;
-                    }
-
-                    if (exporterHeader.ExporterHeaderAttribute.WrapText)
-                    {
-                        col.Style.WrapText = exporterHeader.ExporterHeaderAttribute.WrapText;
-                    }
-                    col.Hidden = exporterHeader.ExporterHeaderAttribute.Hidden;
+                    //自动换行未起效果
+                    //if (exporterHeader.ExporterHeaderAttribute.WrapText)
+                    //{
+                    //    colColumn.Style.WrapText = exporterHeader.ExporterHeaderAttribute.WrapText;
+                    //}
+                    colColumn.Hidden = exporterHeader.ExporterHeaderAttribute.Hidden;
                 }
-            }
-        }
-        /// <summary>
-        ///设置x行开始追加内容
-        /// </summary>
-        private void SetSkipRows()
-        {
-            if (ExcelExporterSettings.HeaderRowIndex > 1)
-            {
-                CurrentExcelWorksheet.InsertRow(1, ExcelExporterSettings.HeaderRowIndex);
+
+
             }
         }
     }
