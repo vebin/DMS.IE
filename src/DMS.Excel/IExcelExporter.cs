@@ -1,4 +1,5 @@
 ﻿using DMS.Excel.Models;
+using OfficeOpenXml;
 using System;
 using System.Collections.Generic;
 using System.Data;
@@ -27,14 +28,20 @@ namespace DMS.Excel
         /// <param name="dataItems">数据</param>
         /// <returns>文件</returns>
         Task<ExportFileInfo> Export<T>(string fileName, ICollection<T> dataItems) where T : class, new();
+
         /// <summary>
-        /// 
+        /// 追加集合
         /// </summary>
         /// <typeparam name="T"></typeparam>
-        /// <param name="fileName"></param>
         /// <param name="dataItems"></param>
-        /// <param name="sheetNames"></param>
+        /// <param name="sheetName"></param>
         /// <returns></returns>
-        Task<ExportFileInfo> Export<T>(string fileName, List<List<T>> dataItems, List<string> sheetNames) where T : class, new();
+        ExcelExporter Append<T>(ICollection<T> dataItems, string sheetName = null) where T : class, new();
+        /// <summary>
+        /// 追加集合后导出
+        /// </summary>
+        /// <param name="fileName"></param>
+        /// <returns></returns>
+        Task<ExportFileInfo> ExportAppendData(string fileName);
     }
 }

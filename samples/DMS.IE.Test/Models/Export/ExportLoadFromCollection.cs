@@ -1,4 +1,5 @@
-﻿using System;
+﻿using DMS.Excel.Attributes.Export;
+using System;
 using System.Collections.Generic;
 using System.Text;
 
@@ -25,6 +26,7 @@ namespace DMS.IE.Test.Models.Export
         /// <summary>
         /// 
         /// </summary>
+        [ExporterHeader(DisplayName = "日期1", Format = "yyyy-MM-dd")]
         public DateTime Time1 { get; set; }
         /// <summary>
         /// 

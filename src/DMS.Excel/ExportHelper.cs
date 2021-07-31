@@ -4,6 +4,7 @@ using DMSN.Common.Extensions;
 using OfficeOpenXml;
 using OfficeOpenXml.Style;
 using OfficeOpenXml.Table;
+using System;
 using System.Collections.Generic;
 using System.Data;
 using System.Globalization;
@@ -12,13 +13,30 @@ using System.Reflection;
 
 namespace DMS.Excel
 {
-    public class ExportHelper<T> where T : class, new()
+    public class ExportHelper<T> : IDisposable where T : class, new()
     {
         private List<ExporterHeaderInfo> _exporterHeaderInfoList;
         private ExcelExporterAttribute _excelExporterAttribute;
 
         private ExcelWorksheet _excelWorksheet;
         private ExcelPackage _excelPackage;
+        private string _sheetName;
+        /// <summary>
+        /// 
+        /// </summary>
+        public ExportHelper(string sheetName = null)
+        {
+            _sheetName = sheetName;
+        }
+        public ExportHelper(ExcelPackage existExcelPackage, string sheetName = null)
+        {
+            if (existExcelPackage != null)
+            {
+                this._excelPackage = existExcelPackage;
+            }
+
+            _sheetName = sheetName;
+        }
         /// <summary>
         /// 当前Sheet索引
         /// </summary>
@@ -155,7 +173,7 @@ namespace DMS.Excel
             {
                 if (_excelWorksheet == null)
                 {
-                    AddExcelWorksheet();
+                    AddExcelWorksheet(_sheetName);
                 }
 
                 return _excelWorksheet;
@@ -187,9 +205,15 @@ namespace DMS.Excel
         public virtual ExcelPackage Export(ICollection<T> dataItems)
         {
             AddDataItems(dataItems);
-            AddHeader();
-            AddColumnStyle();
+            SetHeader();
+            SetColumn();
             SheetIndex++;
+
+            //int columns = CurrentExcelWorksheet.Dimension.Columns;
+            //CurrentExcelWorksheet.Cells[1, columns + 1].Value = "自定义";
+            //CurrentExcelWorksheet.Cells[2, columns + 1].Value = "自定义值 ";
+            //CurrentExcelWorksheet.InsertRow(1, 1);
+            //CurrentExcelWorksheet.DeleteColumn(exporterHeaderDto.Index - deletedCount);
             return CurrentExcelPackage;
         }
 
@@ -202,7 +226,7 @@ namespace DMS.Excel
         /// <summary>
         /// 设置头部样式
         /// </summary>
-        protected void AddHeader()
+        protected void SetHeader()
         {
             //全局剧中
             if (ExcelExporterSettings.AutoCenter)
@@ -230,7 +254,7 @@ namespace DMS.Excel
                 if (ExcelExporterSettings.FontSize > 0)
                 {
                     //正文字体大小
-
+                    //从头部行计算，正文大小
                 }
             }
 
@@ -240,7 +264,7 @@ namespace DMS.Excel
                 colCell.Value = exporterHeader.DisplayName;
                 if (HeaderFontSizeFlag)
                 {
-                    //局部设置头部字体大小
+                    //全局优先，局部设置头部字体大小
                     colCell.Style.Font.Size = ExcelExporterSettings.HeaderFontSize;
                 }
 
@@ -250,11 +274,12 @@ namespace DMS.Excel
                     //colCell.Style.Font.Bold = exporterHeaderAttribute.IsBold;//当前字段加粗
                 }
             }
+
         }
         /// <summary>
         /// 添加列的样式
         /// </summary>
-        protected void AddColumnStyle()
+        protected void SetColumn()
         {
             foreach (var exporterHeader in ExporterHeaderInfoList)
             {
@@ -306,6 +331,62 @@ namespace DMS.Excel
 
 
             }
+
+
         }
+
+
+        /// <summary>
+        /// 添加动态表头
+        /// </summary>
+        /// <param name="sheet"></param>
+        /// <param name="headerTexts"></param>
+        /// <param name="headerTextsDictionary"></param>
+        public static void AddHeader(ExcelWorksheet sheet, string[] headerTexts, string[] headerTextsDictionary)
+        {
+            for (var i = 0; i < headerTextsDictionary.Length; i++)
+            {
+                AddHeader(sheet, i + 1 + headerTexts.Length, headerTextsDictionary[i]);
+            }
+        }
+        /// <summary>
+        /// 添加表头
+        /// </summary>
+        /// <param name="sheet"></param>
+        /// <param name="columnIndex"></param>
+        /// <param name="headerText"></param>
+        public static void AddHeader(ExcelWorksheet sheet, int columnIndex, string headerText)
+        {
+            sheet.Cells[1, columnIndex].Value = headerText;
+            sheet.Cells[1, columnIndex].Style.Font.Bold = true;
+        }
+
+
+        /// <summary>
+        /// 添加动态数据
+        /// </summary>
+        /// <param name="sheet"></param>
+        /// <param name="startRowIndex"></param>
+        /// <param name="items"></param>
+        /// <param name="propertySelectors"></param>
+        /// <param name="dictionaryKeys"></param>
+
+        //public static void AddObjects(ExcelWorksheet sheet, int startRowIndex, IList<Student> items, Func<Student, object>[] propertySelectors, List<string> dictionaryKeys)
+        //{
+        //    for (var i = 0; i < items.Count; i++)
+        //    {
+        //        for (var j = 0; j < dictionaryKeys.Count; j++)
+        //        {
+        //            sheet.Cells[i + startRowIndex, j + 1 + propertySelectors.Length].Value = items[i].Dictionarys[dictionaryKeys[j]];
+        //        }
+        //    }
+
+        //}
+
+        public void Dispose()
+        {
+            _excelPackage.Dispose();
+        }
+
     }
 }

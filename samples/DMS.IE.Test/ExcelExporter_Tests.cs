@@ -11,7 +11,7 @@ namespace DMS.IE.Test
 {
     public class ExcelExporter_Tests : TestBase
     {
-        IExcelExporter exporter = new ExcelExporter();
+       
         /// <summary>
         /// 最原始导入
         /// </summary>
@@ -19,7 +19,7 @@ namespace DMS.IE.Test
         [Fact(DisplayName = "最原始导入")]
         public async Task ExportLoadFromCollection_Test()
         {
-
+            IExcelExporter exporter = new ExcelExporter();
             var filePath = GetTestFilePath($"{nameof(ExportLoadFromCollection_Test)}.xlsx");
 
             DeleteFile(filePath);
@@ -36,6 +36,7 @@ namespace DMS.IE.Test
         [Fact(DisplayName = "DTO特性导出（测试格式化以及列头索引）")]
         public async Task ExportTestDataWithAttrs_Test()
         {
+            IExcelExporter exporter = new ExcelExporter();
             var filePath = GetTestFilePath($"{nameof(ExportTestDataWithAttrs_Test)}.xlsx");
             DeleteFile(filePath);
             var data = GenFu.GenFu.ListOf<ExportTestDataWithAttrs>(100);
@@ -47,6 +48,7 @@ namespace DMS.IE.Test
             var result = await exporter.Export(filePath, data);
         }
 
+
         /// <summary>
         /// 不同的集合生成多个sheet
         /// </summary>
@@ -54,26 +56,22 @@ namespace DMS.IE.Test
         [Fact(DisplayName = "DTO特性导出（在同一个excel生成多个sheet）")]
         public async Task ExportTestDataWithAttrsGroup_Test()
         {
+            var exporter = new ExcelExporter();
             var filePath = GetTestFilePath($"{nameof(ExportTestDataWithAttrsGroup_Test)}.xlsx");
             DeleteFile(filePath);
             var data = GenFu.GenFu.ListOf<ExportTestDataWithAttrs>(100);
-            var data1 = GenFu.GenFu.ListOf<ExportTestDataWithAttrs>(100);
+            var data1 = GenFu.GenFu.ListOf<ExportLoadFromCollection>(100);
             foreach (var item in data)
             {
                 item.LongNo = 458752665;
                 item.Text = "测试长度超出单元格的字符串";
             }
 
-            List<List<ExportTestDataWithAttrs>> datas = new List<List<ExportTestDataWithAttrs>>();
-            datas.Add(data);
-            datas.Add(data1);
-            List<string> sheetNames = new List<string>() {
-                "导出结果11",
-                "导出结果22"
-            };
-            var result = await exporter.Export(filePath, datas, sheetNames);
+            var result = await exporter
+                .Append(data, "导出结果11")
+                .Append(data1, "导出结果22")
+                .ExportAppendData(filePath);
         }
-
 
 
         /// <summary>

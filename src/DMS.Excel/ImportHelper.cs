@@ -545,9 +545,16 @@ namespace DMS.Excel
         {
             return workbook.Worksheets[sheetIndex] ?? workbook.Worksheets[0];
         }
-
+        /// <summary>
+        /// 
+        /// </summary>
         public void Dispose()
         {
+            ExcelImporterSettings = null;
+            ImporterHeaderInfos = null;
+            ImportResult = null;
+            dicMergePreValues = null;
+            GC.Collect();
         }
     }
 }

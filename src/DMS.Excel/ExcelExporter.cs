@@ -3,6 +3,7 @@ using DMS.Excel.Models;
 using OfficeOpenXml;
 using OfficeOpenXml.Style;
 using OfficeOpenXml.Table;
+using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
@@ -15,6 +16,8 @@ namespace DMS.Excel
     /// </summary>
     public class ExcelExporter : IExcelExporter
     {
+
+        private ExcelPackage _excelPackage;
         public ExcelExporter()
         {
             ExcelPackage.LicenseContext = LicenseContext.NonCommercial;
@@ -62,7 +65,6 @@ namespace DMS.Excel
             var bytes = await ExportAsByteArray(dataItems);
             return bytes.ToExcelExportFileInfo(fileName);
         }
-
         /// <summary>
         /// 导出Excel
         /// </summary>
@@ -102,33 +104,39 @@ namespace DMS.Excel
 
         }
 
+
+
+
+
+
         /// <summary>
-        /// 
+        /// 追加集合
         /// </summary>
         /// <typeparam name="T"></typeparam>
-        /// <param name="fileName"></param>
         /// <param name="dataItems"></param>
-        /// <param name="sheetNames"></param>
+        /// <param name="sheetName"></param>
         /// <returns></returns>
-        public async Task<ExportFileInfo> Export<T>(string fileName, List<List<T>> dataItems, List<string> sheetNames = null) where T : class, new()
+        public ExcelExporter Append<T>(ICollection<T> dataItems, string sheetName = null) where T : class, new()
         {
-            var helper = new ExportHelper<T>();
-            using (helper.CurrentExcelPackage)
+            var helper = this._excelPackage == null ? new ExportHelper<T>(sheetName) : new ExportHelper<T>(_excelPackage, sheetName);
+            this._excelPackage = helper.Export(dataItems);
+            return this;
+
+        }
+        /// <summary>
+        /// 追加集合后导出
+        /// </summary>
+        /// <param name="fileName"></param>
+        /// <returns></returns>
+        public async Task<ExportFileInfo> ExportAppendData(string fileName)
+        {
+           
+            using (this._excelPackage)
             {
-                int index = 0;
-                foreach (var item in dataItems)
-                {
-                    string name = null;
-                    if (sheetNames != null)
-                    {
-                        name = sheetNames[index];
-                    }
-                    helper.AddExcelWorksheet(name);
-                    helper.Export(item);
-                    index++;
-                }
-                byte[] bytes = await helper.CurrentExcelPackage.GetAsByteArrayAsync();
-                return bytes.ToExcelExportFileInfo(fileName);
+                fileName.CheckExcelFileName();
+                var bytes = await _excelPackage.GetAsByteArrayAsync();
+                ExportFileInfo exportFileInfo = bytes.ToExcelExportFileInfo(fileName);
+                return exportFileInfo;
             }
         }
 
