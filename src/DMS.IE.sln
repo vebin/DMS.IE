@@ -11,7 +11,9 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "DMS.IE.Test", "..\samples\D
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "DMS.IE.Consloe", "..\samples\DMS.IE.Consloe\DMS.IE.Consloe.csproj", "{D1A214FA-5DFA-4B70-8668-754BCAF800D2}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "DMS.Excel.Template", "DMS.Excel.Template\DMS.Excel.Template.csproj", "{80476FDB-D110-4371-B371-6B13E96736F3}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "DMS.Excel.Template", "DMS.Excel.Template\DMS.Excel.Template.csproj", "{80476FDB-D110-4371-B371-6B13E96736F3}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "DMS.IE.WebSite", "..\samples\DMS.IE.WebSite\DMS.IE.WebSite.csproj", "{49CE3E87-DFB8-46A5-AA76-7D28D996C12C}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -35,6 +37,10 @@ Global
 		{80476FDB-D110-4371-B371-6B13E96736F3}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{80476FDB-D110-4371-B371-6B13E96736F3}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{80476FDB-D110-4371-B371-6B13E96736F3}.Release|Any CPU.Build.0 = Release|Any CPU
+		{49CE3E87-DFB8-46A5-AA76-7D28D996C12C}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{49CE3E87-DFB8-46A5-AA76-7D28D996C12C}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{49CE3E87-DFB8-46A5-AA76-7D28D996C12C}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{49CE3E87-DFB8-46A5-AA76-7D28D996C12C}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
@@ -42,6 +48,7 @@ Global
 	GlobalSection(NestedProjects) = preSolution
 		{34186C4C-FD8D-45A5-876D-4A43E71567B6} = {2B879163-E18F-48C8-B5E0-FF55FF198B0E}
 		{D1A214FA-5DFA-4B70-8668-754BCAF800D2} = {2B879163-E18F-48C8-B5E0-FF55FF198B0E}
+		{49CE3E87-DFB8-46A5-AA76-7D28D996C12C} = {2B879163-E18F-48C8-B5E0-FF55FF198B0E}
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
 		SolutionGuid = {70EBEFD5-11D3-4F32-8F27-740A16C9BFC5}
