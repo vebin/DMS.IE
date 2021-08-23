@@ -96,7 +96,7 @@ namespace DMS.Excel
             {
                 var type = typeof(T);
                 var objProperties = type.GetProperties()
-                    //.OrderBy(p => p.GetAttribute<ExporterHeaderAttribute>()?.ColumnIndex ?? 10000)
+                    .OrderBy(p => p.GetAttribute<ExporterHeaderAttribute>()?.ColumnIndex ?? 10000)
                     .ToList();
                 return objProperties;
             }
@@ -213,6 +213,11 @@ namespace DMS.Excel
             //CurrentExcelWorksheet.Cells[1, columns + 1].Value = "自定义";
             //CurrentExcelWorksheet.Cells[2, columns + 1].Value = "自定义值 ";
             //CurrentExcelWorksheet.InsertRow(1, 1);
+
+            //CurrentExcelWorksheet.Cells[1, 1, 1, 2].Merge = true;
+            //CurrentExcelWorksheet.Cells[1, 1, 1, 2].Value = "合并 ";
+            //CurrentExcelWorksheet.Cells[1, 1, 1, 2].Style.Font.Bold = true;
+            //CurrentExcelWorksheet.Cells[1, 1, 1, 2].Style.HorizontalAlignment = ExcelHorizontalAlignment.Center;
             //CurrentExcelWorksheet.DeleteColumn(exporterHeaderDto.Index - deletedCount);
             return CurrentExcelPackage;
         }

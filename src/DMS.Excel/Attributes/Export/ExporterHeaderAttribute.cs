@@ -8,7 +8,7 @@ namespace DMS.Excel.Attributes.Export
     [AttributeUsage(AttributeTargets.Property)]
     public class ExporterHeaderAttribute : Attribute
     {
-      
+
         /// <summary>
         /// 显示名称
         /// </summary>
@@ -33,6 +33,10 @@ namespace DMS.Excel.Attributes.Export
         /// Hidden
         /// </summary>
         public bool Hidden { get; set; }
+        /// <summary>
+        /// 排序
+        /// </summary>
+        public int ColumnIndex { get; set; }
 
     }
 }

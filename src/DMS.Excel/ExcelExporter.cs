@@ -119,6 +119,11 @@ namespace DMS.Excel
         public ExcelExporter Append<T>(ICollection<T> dataItems, string sheetName = null) where T : class, new()
         {
             var helper = this._excelPackage == null ? new ExportHelper<T>(sheetName) : new ExportHelper<T>(_excelPackage, sheetName);
+            //var name = helper.ExcelExporterSettings?.Name;
+            //if (this._excelPackage?.Workbook.Worksheets.Any(x => x.Name == name) ?? false)
+            //{
+            //    throw new ArgumentNullException($"A sheet with the name already exists:{name}");
+            //}
             this._excelPackage = helper.Export(dataItems);
             return this;
 
